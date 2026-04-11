@@ -22,12 +22,33 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - run: flutter pub get
+      - name: Find pubspec.yaml location
+        run: find . -name "pubspec.yaml" -not -path "*/.*" | head -5
 
-      - run: flutter build apk --debug --no-tree-shake-icons
+      - name: Get Flutter dependencies
+        run: |
+          if [ -f "pubspec.yaml" ]; then
+            flutter pub get
+          elif [ -f "fitness_tracker_app/pubspec.yaml" ]; then
+            cd fitness_tracker_app && flutter pub get
+          else
+            cd $(dirname $(find . -name "pubspec.yaml" -not -path "*/.*" | head -1)) && flutter pub get
+          fi
+
+      - name: Build APK
+        run: |
+          if [ -f "pubspec.yaml" ]; then
+            flutter build apk --debug --no-tree-shake-icons
+          elif [ -f "fitness_tracker_app/pubspec.yaml" ]; then
+            cd fitness_tracker_app && flutter build apk --debug --no-tree-shake-icons
+          else
+            cd $(dirname $(find . -name "pubspec.yaml" -not -path "*/.*" | head -1)) && flutter build apk --debug --no-tree-shake-icons
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: elite-fitness-apk
-          path: build/app/outputs/apk/debug/app-debug.apk
+          path: |
+            build/app/outputs/apk/debug/app-debug.apk
+            **/build/app/outputs/apk/debug/app-debug.apk
           retention-days: 30
